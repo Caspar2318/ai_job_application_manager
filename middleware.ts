@@ -1,28 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
-import jwt from "jsonwebtoken";
-
-const JWT_SECRET = "thisisasecret";
 
 export function middleware(req: NextRequest) {
   const token = req.cookies.get("token")?.value;
+  const { pathname } = req.nextUrl;
 
-  const isLoginPage = req.nextUrl.pathname === "/login";
-
-  if (!token && !isLoginPage) {
-    return NextResponse.redirect(new URL("/login", req.url));
-  }
-
-  if (token && isLoginPage) {
+  if (pathname === "/login" && token) {
     return NextResponse.redirect(new URL("/home", req.url));
   }
 
-  try {
-    jwt.verify(token!, JWT_SECRET);
-  } catch {
+  if (pathname.startsWith("/home") && !token) {
     return NextResponse.redirect(new URL("/login", req.url));
   }
+
+  return NextResponse.next();
 }
 
 export const config = {
-  matcher: ["/", "/home"],
+  matcher: ["/login", "/home/:path*"],
 };

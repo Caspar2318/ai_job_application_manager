@@ -51,6 +51,9 @@ export async function POST(req: Request) {
       location: body.location || null,
       jobUrl: body.jobUrl || null,
       notes: body.notes || null,
+      companySize: body.companySize || null,
+      industry: body.industry || null,
+      workMode: body.workMode || null,
       userId,
     },
   });

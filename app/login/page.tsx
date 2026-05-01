@@ -58,8 +58,8 @@ export default function Login() {
 
   return (
     <div className="w-full h-full m-auto flex justify-center items-center flex-col">
-      <h1 className="text-[28px] font-semibold text-blue-500">
-        Welcome to AI Job Helper
+      <h1 className="text-[28px] font-semibold">
+        Track your job applications with ease.
       </h1>
 
       <div className="m-9 flex flex-col gap-4 w-80">

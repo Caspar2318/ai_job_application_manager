@@ -76,12 +76,12 @@ const AddJob = ({ setError, setJobs, showError }: AddJobProps) => {
   }
 
   return (
-    <section className="rounded-2xl p-6 shadow-sm border">
+    <section className="rounded-2xl p-6 shadow-sm border bg-slate-900">
       <h2 className="text-xl font-semibold">Add New Application</h2>
 
       <div className="mt-5 flex flex-col gap-3 md:flex-row">
         <input
-          className="flex-1 rounded-md border p-2"
+          className="flex-1 rounded-md border p-2 bg-slate-9950"
           placeholder="Paste job URL..."
           value={previewUrl}
           onChange={(e) => setPreviewUrl(e.target.value)}
@@ -90,7 +90,7 @@ const AddJob = ({ setError, setJobs, showError }: AddJobProps) => {
         <button
           onClick={previewJobUrl}
           disabled={previewLoading || !previewUrl}
-          className="rounded-md bg-sky-600 px-4 py-2 text-black disabled:bg-slate-400 font-semibold active:translate-y-0.5 cursor-pointer disabled:cursor-not-allowed"
+          className="rounded-md bg-sky-600 px-4 py-2 text-black disabled:bg-slate-500 font-semibold active:translate-y-0.5 cursor-pointer disabled:cursor-not-allowed"
         >
           {previewLoading ? "Parsing..." : "Preview Job"}
         </button>

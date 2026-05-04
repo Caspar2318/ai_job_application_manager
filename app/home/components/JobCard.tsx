@@ -1,5 +1,7 @@
+"use client";
 import React, { useState } from "react";
-import { Job, statuses } from "../HomeClient";
+import { Job } from "../HomeClient";
+import { getStatusColor } from "./MyApplications";
 
 interface JobCardProps {
   job: Job;
@@ -7,16 +9,12 @@ interface JobCardProps {
   showError: (message: string) => void;
   setError: React.Dispatch<React.SetStateAction<string>>;
   error: string;
+  updateStatus: (id: string, status: string) => void;
 }
 
-const JobCard = ({
-  job,
-  setJobs,
-  showError,
-  setError,
-  error,
-}: JobCardProps) => {
+const JobCard = ({ job, setJobs, showError, setError }: JobCardProps) => {
   const [editingJobId, setEditingJobId] = useState<string | null>(null);
+
   const [editCompany, setEditCompany] = useState("");
   const [editRole, setEditRole] = useState("");
   const [editLocation, setEditLocation] = useState("");
@@ -26,31 +24,23 @@ const JobCard = ({
   const [editIndustry, setEditIndustry] = useState("");
   const [editWorkMode, setEditWorkMode] = useState("");
 
-  async function updateStatus(id: string, newStatus: string) {
-    const res = await fetch(`/api/jobs/${id}`, {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ status: newStatus }),
-    });
+  const [aiLoadingJobId, setAiLoadingJobId] = useState<string | null>(null);
+  const [aiAdviceByJobId, setAiAdviceByJobId] = useState<
+    Record<string, string>
+  >({});
+  const [aiOpenByJobId, setAiOpenByJobId] = useState<Record<string, boolean>>(
+    {},
+  );
 
-    const data = await res.json();
-
-    if (res.ok) {
-      setJobs((prev) => prev.map((job) => (job.id === id ? data : job)));
-    }
-  }
-
-  async function deleteJob(id: string) {
-    const res = await fetch(`/api/jobs/${id}`, {
-      method: "DELETE",
-    });
-
-    if (res.ok) {
-      setJobs((prev) => prev.filter((job) => job.id !== id));
-    }
-  }
+  const [coverLoadingJobId, setCoverLoadingJobId] = useState<string | null>(
+    null,
+  );
+  const [coverLetterByJobId, setCoverLetterByJobId] = useState<
+    Record<string, string>
+  >({});
+  const [coverOpenByJobId, setCoverOpenByJobId] = useState<
+    Record<string, boolean>
+  >({});
 
   function startEdit(job: Job) {
     setEditingJobId(job.id);
@@ -98,16 +88,15 @@ const JobCard = ({
     setEditingJobId(null);
   }
 
-  const [aiLoadingJobId, setAiLoadingJobId] = useState<string | null>(null);
-  const [aiAdviceByJobId, setAiAdviceByJobId] = useState<
-    Record<string, string>
-  >({});
-  const [coverLetterByJobId, setCoverLetterByJobId] = useState<
-    Record<string, string>
-  >({});
-  const [coverLoadingJobId, setCoverLoadingJobId] = useState<string | null>(
-    null,
-  );
+  async function deleteJob(id: string) {
+    const res = await fetch(`/api/jobs/${id}`, {
+      method: "DELETE",
+    });
+
+    if (res.ok) {
+      setJobs((prev) => prev.filter((job) => job.id !== id));
+    }
+  }
 
   async function generateAIAdvice(jobId: string) {
     setError("");
@@ -122,7 +111,6 @@ const JobCard = ({
     });
 
     const data = await res.json();
-
     setAiLoadingJobId(null);
 
     if (!res.ok) {
@@ -133,6 +121,11 @@ const JobCard = ({
     setAiAdviceByJobId((prev) => ({
       ...prev,
       [jobId]: data.advice,
+    }));
+
+    setAiOpenByJobId((prev) => ({
+      ...prev,
+      [jobId]: true,
     }));
   }
 
@@ -148,7 +141,6 @@ const JobCard = ({
     });
 
     const data = await res.json();
-
     setCoverLoadingJobId(null);
 
     if (!res.ok) {
@@ -160,6 +152,11 @@ const JobCard = ({
       ...prev,
       [jobId]: data.coverLetter,
     }));
+
+    setCoverOpenByJobId((prev) => ({
+      ...prev,
+      [jobId]: true,
+    }));
   }
 
   async function copyToClipboard(text: string) {
@@ -167,216 +164,167 @@ const JobCard = ({
     showError("Copied to clipboard.");
   }
 
-  const [aiOpenByJobId, setAiOpenByJobId] = useState<Record<string, boolean>>(
-    {},
-  );
-  const [coverOpenByJobId, setCoverOpenByJobId] = useState<
-    Record<string, boolean>
-  >({});
-
   return (
-    <div key={job.id} className="rounded-2xl border p-5 shadow-sm">
+    <div
+      className="rounded-2xl border border-slate-600 bg-slate-900 p-4 shadow-sm hover:bg-slate-800"
+      title="Drag and drop to update status."
+    >
       {editingJobId === job.id ? (
-        <div className="rounded-xl border border-slate-300 p-4">
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <div className="flex flex-col gap-1">
-              <label className="text-xs font-medium text-slate-400">
-                Company
-              </label>
-              <input
-                className="w-full rounded-md border p-2"
-                value={editCompany}
-                onChange={(e) => setEditCompany(e.target.value)}
-                placeholder="Company"
-              />
-            </div>
+        <div className="rounded-xl border border-slate-700 p-3">
+          <div className="grid grid-cols-1 gap-3">
+            <input
+              className="rounded-md border p-2 text-sm"
+              value={editCompany}
+              onChange={(e) => setEditCompany(e.target.value)}
+              placeholder="Company"
+            />
 
-            <div className="flex flex-col gap-1">
-              <label className="text-xs font-medium text-slate-400">Role</label>
-              <input
-                className="w-full rounded-md border p-2 capitalize"
-                value={editRole}
-                onChange={(e) => setEditRole(e.target.value)}
-                placeholder="Role"
-              />
-            </div>
+            <input
+              className="rounded-md border p-2 text-sm"
+              value={editRole}
+              onChange={(e) => setEditRole(e.target.value)}
+              placeholder="Role"
+            />
 
-            <div className="flex flex-col gap-1">
-              <label className="text-xs font-medium text-slate-400 capitalize">
-                Location
-              </label>
-              <input
-                className="w-full rounded-md border p-2"
-                value={editLocation}
-                onChange={(e) => setEditLocation(e.target.value)}
-                placeholder="Location"
-              />
-            </div>
+            <input
+              className="rounded-md border p-2 text-sm"
+              value={editLocation}
+              onChange={(e) => setEditLocation(e.target.value)}
+              placeholder="Location"
+            />
 
-            <div className="flex flex-col gap-1">
-              <label className="text-xs font-medium text-slate-400">
-                Work Mode
-              </label>
-              <select
-                className="w-full rounded-md border p-2"
-                value={editWorkMode}
-                onChange={(e) => setEditWorkMode(e.target.value)}
-              >
-                <option value="">Unknown</option>
-                <option value="Remote">Remote</option>
-                <option value="Hybrid">Hybrid</option>
-                <option value="On-site">On-site</option>
-              </select>
-            </div>
+            <select
+              className="rounded-md border p-2 text-sm"
+              value={editWorkMode}
+              onChange={(e) => setEditWorkMode(e.target.value)}
+            >
+              <option value="">Work Mode</option>
+              <option value="Remote">Remote</option>
+              <option value="Hybrid">Hybrid</option>
+              <option value="On-site">On-site</option>
+            </select>
 
-            <div className="flex flex-col gap-1">
-              <label className="text-xs font-medium text-slate-400">
-                Company Size
-              </label>
-              <input
-                className="w-full rounded-md border p-2"
-                value={editCompanySize}
-                onChange={(e) => setEditCompanySize(e.target.value)}
-                placeholder="e.g. 51-200 employees"
-              />
-            </div>
+            <input
+              className="rounded-md border p-2 text-sm"
+              value={editCompanySize}
+              onChange={(e) => setEditCompanySize(e.target.value)}
+              placeholder="Company Size"
+            />
 
-            <div className="flex flex-col gap-1">
-              <label className="text-xs font-medium text-slate-400">
-                Company Category
-              </label>
-              <input
-                className="w-full rounded-md border p-2"
-                value={editIndustry}
-                onChange={(e) => setEditIndustry(e.target.value)}
-                placeholder="e.g. Software, Finance, Healthcare"
-              />
-            </div>
+            <input
+              className="rounded-md border p-2 text-sm"
+              value={editIndustry}
+              onChange={(e) => setEditIndustry(e.target.value)}
+              placeholder="Industry"
+            />
 
-            <div className="flex flex-col gap-1 md:col-span-2">
-              <label className="text-xs font-medium text-slate-400">
-                Job URL
-              </label>
-              <input
-                className="w-full rounded-md border p-2"
-                value={editJobUrl}
-                onChange={(e) => setEditJobUrl(e.target.value)}
-                placeholder="Job URL"
-              />
-            </div>
+            <input
+              className="rounded-md border p-2 text-sm"
+              value={editJobUrl}
+              onChange={(e) => setEditJobUrl(e.target.value)}
+              placeholder="Job URL"
+            />
 
-            <div className="flex flex-col gap-1 md:col-span-2">
-              <label className="text-xs font-medium text-slate-400">
-                Notes
-              </label>
-              <textarea
-                className="min-h-[100px] w-full rounded-md border p-2"
-                value={editNotes}
-                onChange={(e) => setEditNotes(e.target.value)}
-                placeholder="Notes"
-              />
-            </div>
+            <textarea
+              className="min-h-[80px] rounded-md border p-2 text-sm"
+              value={editNotes}
+              onChange={(e) => setEditNotes(e.target.value)}
+              placeholder="Notes"
+            />
           </div>
 
-          <div className="mt-4 flex justify-end gap-2">
+          <div className="mt-3 flex justify-end gap-2">
             <button
               onClick={() => saveEdit(job.id)}
-              className="rounded-md bg-green-600 px-4 py-2 text-sm text-white cursor-pointer active:translate-y-0.5"
+              className="rounded-md bg-green-600 px-3 py-1 text-xs text-white"
             >
               Save
             </button>
 
             <button
               onClick={() => setEditingJobId(null)}
-              className="rounded-md bg-slate-500 px-4 py-2 text-sm text-white cursor-pointer active:translate-y-0.5"
+              className="rounded-md bg-slate-500 px-3 py-1 text-xs text-white"
             >
               Cancel
             </button>
           </div>
         </div>
       ) : (
-        <div className="flex flex-col gap-4 md:items-start md:justify-between">
-          <div className="flex flex-col md:flex-row items-center justify-between w-full">
+        <div className="flex flex-col gap-3">
+          <div className="flex items-start justify-between gap-2">
             <div>
-              <h3 className="text-lg font-semibold text-slate-300 capitalize">
-                {job.role} @ {job.company}{" "}
-                <span
-                  className={`ml-2 rounded-sm px-2 py-0.5 text-[11px] text-black ${
-                    job.status === "Applied"
-                      ? "bg-purple-500"
-                      : job.status === "Interviewing"
-                        ? "bg-blue-500"
-                        : job.status === "Offer"
-                          ? "bg-green-500"
-                          : "bg-red-500"
-                  }`}
-                >
-                  {job.status}
-                </span>
+              <p className="text-xs uppercase tracking-wide text-slate-300">
+                {job.company}
+              </p>
+
+              <h3 className="mt-1 text-sm font-semibold capitalize leading-snug text-slate-100">
+                {job.role}
               </h3>
-
-              <div className="mt-2 flex flex-wrap gap-2 text-xs text-slate-300">
-                {job.location && (
-                  <span className="rounded-md border border-slate-500 px-2 py-0.5 capitalize">
-                    📍 {job.location}
-                  </span>
-                )}
-
-                {job.workMode && (
-                  <span className="rounded-md border border-slate-500 px-2 py-0.5">
-                    🏠 {job.workMode}
-                  </span>
-                )}
-
-                {job.industry && (
-                  <span className="rounded-md border border-slate-500 px-2 py-0.5">
-                    🏢 {job.industry}
-                  </span>
-                )}
-
-                {job.companySize && (
-                  <span className="rounded-md border border-slate-500 px-2 py-0.5">
-                    👥 {job.companySize}
-                  </span>
-                )}
-
-                <span className="rounded-md border border-slate-500 px-2 py-0.5">
-                  📅 {new Date(job.createdAt).toLocaleDateString()}
-                </span>
-              </div>
-
-              {job.jobUrl && (
-                <a
-                  href={job.jobUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="mt-2 inline-block text-sm text-slate-300 underline"
-                >
-                  View job posting
-                </a>
-              )}
-
-              {job.notes && (
-                <p className="mt-3 text-sm text-slate-300 capitalize">
-                  {job.notes}
-                </p>
-              )}
             </div>
 
-            <div className="flex gap-2">
-              <select
-                className="rounded-md border p-2 text-sm"
-                value={job.status}
-                onChange={(e) => updateStatus(job.id, e.target.value)}
-              >
-                {statuses.map((item) => (
-                  <option key={item} value={item}>
-                    {item}
-                  </option>
-                ))}
-              </select>
+            <span
+              className={`shrink-0 rounded-md px-2 py-0.5 text-[10px] font-semibold text-black border ${
+                job.status === "Applied"
+                  ? "bg-purple-400"
+                  : job.status === "Interviewing"
+                    ? "bg-blue-400"
+                    : job.status === "Offer"
+                      ? "bg-green-400"
+                      : "bg-red-400"
+              } ${getStatusColor(job.status).text} ${getStatusColor(job.status).bg} ${getStatusColor(job.status).border}`}
+            >
+              {job.status}
+            </span>
+          </div>
 
-              {job.jobUrl && (
+          <div className="flex flex-wrap gap-1.5 text-[11px] text-slate-300">
+            {job.location && (
+              <span className="rounded-full border border-slate-600 px-2 py-0.5">
+                📍 {job.location}
+              </span>
+            )}
+
+            {job.workMode && (
+              <span className="rounded-full border border-slate-600 px-2 py-0.5">
+                {job.workMode}
+              </span>
+            )}
+
+            {job.industry && (
+              <span className="rounded-full border border-slate-600 px-2 py-0.5">
+                {job.industry}
+              </span>
+            )}
+
+            {job.companySize && (
+              <span className="rounded-full border border-slate-600 px-2 py-0.5">
+                {job.companySize}
+              </span>
+            )}
+          </div>
+
+          <p className="text-[11px] text-slate-400">
+            Added {new Date(job.createdAt).toLocaleDateString()}
+          </p>
+
+          {job.notes && (
+            <p className="line-clamp-3 text-xs text-slate-300">{job.notes}</p>
+          )}
+
+          <div className="flex flex-wrap gap-2 pt-1">
+            {job.jobUrl && (
+              <a
+                href={job.jobUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="rounded-md border border-slate-600 px-2 py-1 text-xs hover:bg-slate-800"
+              >
+                View
+              </a>
+            )}
+
+            {job.jobUrl ? (
+              <>
                 <button
                   onClick={() => {
                     if (aiAdviceByJobId[job.id]) {
@@ -386,19 +334,13 @@ const JobCard = ({
                       }));
                     } else {
                       generateAIAdvice(job.id);
-                      setAiOpenByJobId((prev) => ({
-                        ...prev,
-                        [job.id]: true,
-                      }));
                     }
                   }}
-                  className="rounded-md bg-purple-600 px-2 text-sm text-white active:translate-y-0.5 whitespace-nowrap cursor-pointer"
+                  className="rounded-md bg-purple-600 px-2 py-1 text-xs text-white"
                 >
-                  {aiLoadingJobId === job.id ? "Thinking..." : "AI Analyze"}
+                  {aiLoadingJobId === job.id ? "..." : "Analyze"}
                 </button>
-              )}
 
-              {job.jobUrl && (
                 <button
                   onClick={() => {
                     if (coverLetterByJobId[job.id]) {
@@ -408,51 +350,45 @@ const JobCard = ({
                       }));
                     } else {
                       generateCoverLetter(job.id);
-
-                      setCoverOpenByJobId((prev) => ({
-                        ...prev,
-                        [job.id]: true,
-                      }));
                     }
                   }}
-                  className="rounded-md bg-indigo-600 px-2 text-sm text-white whitespace-nowrap active:translate-y-0.5 cursor-pointer"
+                  className="rounded-md bg-indigo-600 px-2 py-1 text-xs text-white"
                 >
-                  {coverLoadingJobId === job.id
-                    ? "Generating..."
-                    : "Cover Letter"}
+                  {coverLoadingJobId === job.id ? "..." : "CL"}
                 </button>
-              )}
+              </>
+            ) : (
+              <p className="text-[11px] text-slate-500">Add URL to enable AI</p>
+            )}
 
-              <button
-                onClick={() => startEdit(job)}
-                className="rounded-md bg-yellow-500 px-2 text-sm text-black active:translate-y-0.5 cursor-pointer"
-              >
-                Edit
-              </button>
+            <button
+              onClick={() => startEdit(job)}
+              className="rounded-md bg-yellow-500 px-2 py-1 text-xs text-black"
+            >
+              Edit
+            </button>
 
-              <button
-                onClick={() => deleteJob(job.id)}
-                className="rounded-md bg-red-500 px-2 text-sm text-white active:translate-y-0.5 cursor-pointer"
-              >
-                Delete
-              </button>
-            </div>
+            <button
+              onClick={() => deleteJob(job.id)}
+              className="rounded-md bg-red-500 px-2 py-1 text-xs text-white"
+            >
+              Delete
+            </button>
           </div>
 
           {aiAdviceByJobId[job.id] && aiOpenByJobId[job.id] && (
-            <div className="mt-2 whitespace-pre-wrap rounded-xl border p-4 text-md text-blue-300 border-slate-300 w-full h-[200px] overflow-y-auto">
-              <div className="mb-2 items-center justify-between w-full flex">
-                <p className="font-semibold text-white">AI Analysis:</p>
+            <div className="mt-2 max-h-[220px] overflow-y-auto rounded-lg border border-slate-700 p-3 text-xs text-blue-300">
+              <div className="mb-2 flex items-center justify-between">
+                <span className="font-semibold text-white">AI Analysis</span>
+
                 <div className="flex gap-2">
-                  {error && (
-                    <p className="mt-3 text-sm text-red-500">{error}</p>
-                  )}
                   <button
                     onClick={() => copyToClipboard(aiAdviceByJobId[job.id])}
-                    className="rounded-md text-md cursor-pointer text-green-500 active:translate-y-0.5 italic font-semibold underline underline-offset-4"
+                    className="text-green-400 underline"
                   >
                     Copy
                   </button>
+
                   <button
                     onClick={() =>
                       setAiOpenByJobId((prev) => ({
@@ -460,7 +396,7 @@ const JobCard = ({
                         [job.id]: false,
                       }))
                     }
-                    className="rounded-md px-2 py-1 text-lg cursor-pointer text-red-500 active:translate-y-0.5 font-semibold"
+                    className="font-semibold text-red-400"
                   >
                     X
                   </button>
@@ -474,16 +410,18 @@ const JobCard = ({
           )}
 
           {coverLetterByJobId[job.id] && coverOpenByJobId[job.id] && (
-            <div className="mt-2 whitespace-pre-wrap rounded-xl border p-4 text-md text-green-300 border-slate-300 w-full h-[300px] overflow-y-auto">
-              <div className="mb-2 items-center justify-between w-full flex">
-                <p className="font-semibold text-white">Cover Letter:</p>
-                <div className="flex gap-2 items-center">
+            <div className="mt-2 max-h-[260px] overflow-y-auto rounded-lg border border-slate-700 p-3 text-xs text-green-300">
+              <div className="mb-2 flex items-center justify-between">
+                <span className="font-semibold text-white">Cover Letter</span>
+
+                <div className="flex gap-2">
                   <button
                     onClick={() => copyToClipboard(coverLetterByJobId[job.id])}
-                    className="rounded-md text-md cursor-pointer text-green-500 active:translate-y-0.5 italic font-semibold underline underline-offset-4"
+                    className="text-green-400 underline"
                   >
                     Copy
                   </button>
+
                   <button
                     onClick={() =>
                       setCoverOpenByJobId((prev) => ({
@@ -491,7 +429,7 @@ const JobCard = ({
                         [job.id]: false,
                       }))
                     }
-                    className="rounded-md px-2 py-1 text-lg cursor-pointer text-red-500 active:translate-y-0.5 font-semibold"
+                    className="font-semibold text-red-400"
                   >
                     X
                   </button>

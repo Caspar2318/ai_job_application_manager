@@ -94,35 +94,37 @@ export default function HomeClient({ initialJobs }: { initialJobs: Job[] }) {
     setNotes("");
   }
 
+  async function updateJobStatus(jobId: string, newStatus: string) {
+    const res = await fetch(`/api/jobs/${jobId}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ status: newStatus }),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      showError(data.error || "Failed to update job status.");
+      return;
+    }
+
+    setJobs((prev) => prev.map((job) => (job.id === jobId ? data : job)));
+  }
+
   // Filter Jobs
-  const [filterStatus, setFilterStatus] = useState("All");
+
   const [searchTerm, setSearchTerm] = useState("");
-
-  const filteredJobs = jobs.filter((job) => {
-    const matchesStatus = filterStatus === "All" || job.status === filterStatus;
-
-    const matchesSearch =
-      job.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      job.role.toLowerCase().includes(searchTerm.toLowerCase());
-
-    return matchesStatus && matchesSearch;
-  });
-
-  const appliedCount = jobs.filter((job) => job.status === "Applied").length;
-  const interviewingCount = jobs.filter(
-    (job) => job.status === "Interviewing",
-  ).length;
-  const rejectedCount = jobs.filter((job) => job.status === "Rejected").length;
-  const offerCount = jobs.filter((job) => job.status === "Offer").length;
 
   return (
     <main className="min-h-screen px-6 py-8">
       <div className="mx-auto max-w-6xl">
         <div className="mb-4">
-          <h1 className="text-3xl font-semibold">
+          <h1 className="text-3xl font-semibold text-sky-500">
             AI Job Applications Tracker
           </h1>
-          <p className="mt-2 text-sky-500">
+          <p className="mt-2 ">
             Track your applications, interview stages, notes, and job links.
           </p>
         </div>
@@ -142,38 +144,15 @@ export default function HomeClient({ initialJobs }: { initialJobs: Job[] }) {
           showError={showError}
         />
 
-        <section className="mt-6 mb-6 grid grid-cols-2 gap-4 md:grid-cols-4">
-          <div className="rounded-2xl border p-4 shadow-md">
-            <p className="text-md font-semibold text-purple-500">Applied</p>
-            <p className="mt-2 text-2xl font-semibold">{appliedCount}</p>
-          </div>
-
-          <div className="rounded-2xl border p-4 shadow-md">
-            <p className="text-md text-blue-500 font-semibold">Interviewing</p>
-            <p className="mt-2 text-2xl font-semibold">{interviewingCount}</p>
-          </div>
-
-          <div className="rounded-2xl border p-4 shadow-md">
-            <p className="text-md text-red-500 font-semibold">Rejected</p>
-            <p className="mt-2 text-2xl font-semibold">{rejectedCount}</p>
-          </div>
-
-          <div className="rounded-2xl border p-4 shadow-md">
-            <p className="text-md text-green-500 font-semibold">Offer</p>
-            <p className="mt-2 text-2xl font-semibold">{offerCount}</p>
-          </div>
-        </section>
-
         <MyApplications
-          filteredJobs={filteredJobs}
+          jobs={jobs}
           searchTerm={searchTerm}
           setSearchTerm={setSearchTerm}
-          filterStatus={filterStatus}
-          setFilterStatus={setFilterStatus}
           setJobs={setJobs}
           showError={showError}
           setError={setError}
           error={error}
+          updateJobStatus={updateJobStatus}
         />
       </div>
     </main>

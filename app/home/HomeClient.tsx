@@ -16,6 +16,8 @@ export type Job = {
   companySize?: string | null;
   industry?: string | null;
   workMode?: string | null;
+  aiAnalysis?: string | null;
+  coverLetter?: string | null;
 };
 
 export const statuses = ["Applied", "Interviewing", "Rejected", "Offer"];

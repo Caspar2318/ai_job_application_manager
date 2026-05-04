@@ -12,6 +12,12 @@ interface JobCardProps {
   updateStatus: (id: string, status: string) => void;
 }
 
+function Spinner() {
+  return (
+    <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent" />
+  );
+}
+
 const JobCard = ({ job, setJobs, showError, setError }: JobCardProps) => {
   const [editingJobId, setEditingJobId] = useState<string | null>(null);
 
@@ -27,7 +33,7 @@ const JobCard = ({ job, setJobs, showError, setError }: JobCardProps) => {
   const [aiLoadingJobId, setAiLoadingJobId] = useState<string | null>(null);
   const [aiAdviceByJobId, setAiAdviceByJobId] = useState<
     Record<string, string>
-  >({});
+  >(job.aiAnalysis ? { [job.id]: job.aiAnalysis } : {});
   const [aiOpenByJobId, setAiOpenByJobId] = useState<Record<string, boolean>>(
     {},
   );
@@ -37,7 +43,7 @@ const JobCard = ({ job, setJobs, showError, setError }: JobCardProps) => {
   );
   const [coverLetterByJobId, setCoverLetterByJobId] = useState<
     Record<string, string>
-  >({});
+  >(job.coverLetter ? { [job.id]: job.coverLetter } : {});
   const [coverOpenByJobId, setCoverOpenByJobId] = useState<
     Record<string, boolean>
   >({});
@@ -123,6 +129,12 @@ const JobCard = ({ job, setJobs, showError, setError }: JobCardProps) => {
       [jobId]: data.advice,
     }));
 
+    setJobs((prev) =>
+      prev.map((job) =>
+        job.id === jobId ? { ...job, aiAnalysis: data.advice } : job,
+      ),
+    );
+
     setAiOpenByJobId((prev) => ({
       ...prev,
       [jobId]: true,
@@ -152,6 +164,12 @@ const JobCard = ({ job, setJobs, showError, setError }: JobCardProps) => {
       ...prev,
       [jobId]: data.coverLetter,
     }));
+
+    setJobs((prev) =>
+      prev.map((job) =>
+        job.id === jobId ? { ...job, coverLetter: data.coverLetter } : job,
+      ),
+    );
 
     setCoverOpenByJobId((prev) => ({
       ...prev,
@@ -336,9 +354,10 @@ const JobCard = ({ job, setJobs, showError, setError }: JobCardProps) => {
                       generateAIAdvice(job.id);
                     }
                   }}
-                  className="rounded-md bg-purple-600 px-2 py-1 text-xs text-white"
+                  className="rounded-md bg-purple-600 px-2 py-1 text-xs text-white items-center flex gap-0.5 cursor-pointer"
                 >
-                  {aiLoadingJobId === job.id ? "..." : "Analyze"}
+                  {aiLoadingJobId === job.id && <Spinner />}
+                  Analyze
                 </button>
 
                 <button
@@ -352,9 +371,10 @@ const JobCard = ({ job, setJobs, showError, setError }: JobCardProps) => {
                       generateCoverLetter(job.id);
                     }
                   }}
-                  className="rounded-md bg-indigo-600 px-2 py-1 text-xs text-white"
+                  className="rounded-md bg-indigo-600 px-2 py-1 text-xs text-white items-center flex gap-0.5 cursor-pointer"
                 >
-                  {coverLoadingJobId === job.id ? "..." : "CL"}
+                  {coverLoadingJobId === job.id && <Spinner />}
+                  CL
                 </button>
               </>
             ) : (
@@ -363,14 +383,14 @@ const JobCard = ({ job, setJobs, showError, setError }: JobCardProps) => {
 
             <button
               onClick={() => startEdit(job)}
-              className="rounded-md bg-yellow-500 px-2 py-1 text-xs text-black"
+              className="rounded-md bg-yellow-500 px-2 py-1 text-xs text-black cursor-pointer"
             >
               Edit
             </button>
 
             <button
               onClick={() => deleteJob(job.id)}
-              className="rounded-md bg-red-500 px-2 py-1 text-xs text-white"
+              className="rounded-md bg-red-500 px-2 py-1 text-xs text-white cursor-pointer"
             >
               Delete
             </button>

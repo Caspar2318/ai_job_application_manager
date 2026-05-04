@@ -65,8 +65,17 @@ export async function POST(req: Request) {
       `,
     });
 
+    const coverLetter = response.output_text;
+
+    await db.job.update({
+      where: { id: job.id },
+      data: {
+        coverLetter,
+      },
+    });
+
     return NextResponse.json({
-      coverLetter: response.output_text,
+      coverLetter,
     });
   } catch (error) {
     console.error("AI_COVER_LETTER_ERROR:", error);

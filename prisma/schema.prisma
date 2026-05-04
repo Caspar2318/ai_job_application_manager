@@ -28,6 +28,9 @@ model Job {
   industry    String?
   workMode    String?
 
+  aiAnalysis  String?
+  coverLetter String?
+
   userId      String
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 

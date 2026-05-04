@@ -86,8 +86,17 @@ export async function POST(req: Request) {
       `,
     });
 
+    const advice = response.output_text;
+
+    await db.job.update({
+      where: { id: job.id },
+      data: {
+        aiAnalysis: advice,
+      },
+    });
+
     return NextResponse.json({
-      advice: response.output_text,
+      advice,
     });
   } catch (error) {
     console.error("AI_JOB_ADVICE_ERROR:", error);

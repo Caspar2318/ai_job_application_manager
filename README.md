@@ -2,6 +2,8 @@
 
 AI Job Application Tracker is a full-stack job application management app built with Next.js. It helps users track job applications, organize them in a Kanban board, extract job information from job URLs, and generate AI-powered application advice and cover letters.
 
+Link at: https://ai-job-application-manager-b7yilwjwg-caspar2318s-projects.vercel.app
+
 ## Features
 
 ### Authentication
